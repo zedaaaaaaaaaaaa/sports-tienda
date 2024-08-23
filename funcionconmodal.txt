@@ -1,0 +1,450 @@
+// con modal
+<template>
+  <div class="productos-tienda">
+    <div v-if="productos.length > 0" class="productos-grid">
+      <div
+        v-for="producto in productos"
+        :key="producto.id_producto"
+        class="producto-card"
+      >
+        <div class="producto-descripcion">
+          <h3>{{ producto.descripcion }}</h3>
+          <p>Precio: ${{ producto.precio_unitario }}</p>
+        </div>
+        <div class="producto-acciones">
+          <button @click="agregarCarrito(producto)">Agregar al carrito</button>
+          <button @click="mostrarModalCompra(producto)">Comprar ahora</button>
+        </div>
+      </div>
+    </div>
+    <div v-else>
+      <p>No hay productos disponibles.</p>
+    </div>
+
+    <div v-if="carrito.length > 0" class="carrito">
+      <h3>Carrito de compras</h3>
+      <ul>
+        <li v-for="(item, index) in carrito" :key="index">
+          {{ item.descripcion }} - ${{ item.precio_unitario }} x
+          {{ item.cantidad }}
+          <button @click="eliminarDelCarrito(index)">Eliminar</button>
+        </li>
+      </ul>
+      <p>Total: ${{ totalCarrito }}</p>
+      <button @click="procesarVenta">Procesar venta</button>
+    </div>
+
+    <!-- Modal para seleccionar método de pago y ver detalles del producto -->
+    <b-modal id="modalCompra" v-model="isModalVisible" title="Comprar ahora">
+      <div class="modal-body">
+        <h3>{{ productoSeleccionado.descripcion }}</h3>
+        <p>Precio: ${{ productoSeleccionado.precio_unitario }}</p>
+        <p>Total: ${{ productoSeleccionado.precio_unitario }}</p>
+        <label for="metodoPago">Selecciona el método de pago:</label>
+        <b-form-select v-model="metodo_pago_id" class="form-select">
+          <b-form-select-option value="1"
+            >Tarjeta de Credito</b-form-select-option
+          >
+          <b-form-select-option value="2">Mercadopago</b-form-select-option>
+          <b-form-select-option value="3">Rapipago</b-form-select-option>
+        </b-form-select>
+      </div>
+      <template #footer>
+        <b-button variant="secondary" @click="isModalVisible = false"
+          >Cancelar</b-button
+        >
+        <b-button variant="primary" @click="comprarAhora"
+          >Confirmar Compra</b-button
+        >
+      </template>
+    </b-modal>
+  </div>
+</template>
+
+<script>
+import axios from "axios";
+
+export default {
+  data() {
+    return {
+      productos: [],
+      carrito: [],
+      totalCarrito: 0,
+      id_cliente: null,
+      metodo_pago_id: 1,
+      productoSeleccionado: {},
+      isModalVisible: false,
+    };
+  },
+  methods: {
+    async fetchProductos() {
+      try {
+        const response = await axios.get("http://localhost:3001/api/pro");
+        if (Array.isArray(response.data)) {
+          this.productos = response.data;
+        } else {
+          console.error("Respuesta inesperada:", response.data);
+        }
+      } catch (error) {
+        console.error("Error al obtener los productos:", error);
+      }
+    },
+    agregarCarrito(producto) {
+      const itemEnCarrito = this.carrito.find(
+        (item) => item.id_producto === producto.id_producto
+      );
+
+      if (itemEnCarrito) {
+        itemEnCarrito.cantidad++;
+      } else {
+        this.carrito.push({ ...producto, cantidad: 1 });
+      }
+
+      this.actualizarTotal();
+    },
+    eliminarDelCarrito(index) {
+      this.carrito.splice(index, 1);
+      this.actualizarTotal();
+    },
+    actualizarTotal() {
+      this.totalCarrito = this.carrito.reduce((total, item) => {
+        return total + item.precio_unitario * item.cantidad;
+      }, 0);
+    },
+    mostrarModalCompra(producto) {
+      this.productoSeleccionado = producto;
+      this.isModalVisible = true;
+    },
+    async comprarAhora() {
+      const token = localStorage.getItem("token");
+      this.id_cliente = localStorage.getItem("id_cliente");
+
+      if (!token) {
+        alert("Por favor, inicie sesión para continuar.");
+        return;
+      }
+
+      if (!this.id_cliente) {
+        alert("El cliente no está definido.");
+        return;
+      }
+
+      try {
+        const response = await axios.post(
+          "http://localhost:3001/api/auth/venta",
+          {
+            id_cliente: this.id_cliente,
+            productos: [
+              {
+                id_producto: this.productoSeleccionado.id_producto,
+                cantidad: 1,
+                precio_unitario: parseFloat(
+                  this.productoSeleccionado.precio_unitario
+                ),
+              },
+            ],
+            total: parseFloat(this.productoSeleccionado.precio_unitario),
+            metodo_pago_id: this.metodo_pago_id,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.data.message === "Venta registrada exitosamente") {
+          alert("Venta procesada con éxito.");
+          this.carrito = [];
+          this.totalCarrito = 0;
+          this.isModalVisible = false;
+        } else {
+          alert("Error al procesar la venta.");
+        }
+      } catch (error) {
+        console.error("Error al procesar la venta:", error);
+        alert("Error al procesar la venta.");
+      }
+    },
+  },
+  mounted() {
+    this.fetchProductos();
+  },
+};
+</script>
+
+<style scoped>
+.productos-tienda {
+  padding: 20px;
+}
+
+.productos-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.producto-card {
+  border: 1px solid #ccc;
+  padding: 20px;
+  width: 200px;
+  text-align: center;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.producto-descripcion h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.producto-acciones {
+  margin-top: 10px;
+}
+
+button {
+  margin: 5px 0;
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.carrito {
+  position: fixed;
+  right: 20px;
+  top: 20px;
+  width: 300px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.carrito ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.carrito li {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+</style>
+
+//carrito funcional sin modal
+<template>
+  <div class="productos-tienda">
+    <div v-if="productos.length > 0" class="productos-grid">
+      <div
+        v-for="producto in productos"
+        :key="producto.id_producto"
+        class="producto-card"
+      >
+        <div class="producto-descripcion">
+          <h3>{{ producto.descripcion }}</h3>
+          <p>Precio: ${{ producto.precio_unitario }}</p>
+        </div>
+        <div class="producto-acciones">
+          <button @click="agregarCarrito(producto)">Agregar al carrito</button>
+          <button @click="comprarAhora(producto)">Comprar ahora</button>
+        </div>
+      </div>
+    </div>
+    <div v-else>
+      <p>No hay productos disponibles.</p>
+    </div>
+
+    <div v-if="carrito.length > 0" class="carrito">
+      <h3>Carrito de compras</h3>
+      <ul>
+        <li v-for="(item, index) in carrito" :key="index">
+          {{ item.descripcion }} - ${{ item.precio_unitario }} x
+          {{ item.cantidad }}
+          <button @click="eliminarDelCarrito(index)">Eliminar</button>
+        </li>
+      </ul>
+      <p>Total: ${{ totalCarrito }}</p>
+      <button @click="procesarVenta">Procesar venta</button>
+    </div>
+  </div>
+</template>
+
+<script>
+import axios from "axios";
+
+export default {
+  data() {
+    return {
+      productos: [],
+      carrito: [],
+      totalCarrito: 0,
+      id_cliente: null,
+      metodo_pago_id: 1,
+    };
+  },
+  methods: {
+    async fetchProductos() {
+      try {
+        const response = await axios.get("http://localhost:3001/api/pro");
+        if (Array.isArray(response.data)) {
+          this.productos = response.data;
+        } else {
+          console.error("Respuesta inesperada:", response.data);
+        }
+      } catch (error) {
+        console.error("Error al obtener los productos:", error);
+      }
+    },
+    agregarCarrito(producto) {
+      const itemEnCarrito = this.carrito.find(
+        (item) => item.id_producto === producto.id_producto
+      );
+
+      if (itemEnCarrito) {
+        itemEnCarrito.cantidad++;
+      } else {
+        this.carrito.push({ ...producto, cantidad: 1 });
+      }
+
+      this.actualizarTotal();
+    },
+    eliminarDelCarrito(index) {
+      this.carrito.splice(index, 1);
+      this.actualizarTotal();
+    },
+    actualizarTotal() {
+      this.totalCarrito = this.carrito.reduce((total, item) => {
+        return total + item.precio_unitario * item.cantidad;
+      }, 0);
+    },
+    async procesarVenta() {
+      const token = localStorage.getItem("token");
+      this.id_cliente = localStorage.getItem("id_cliente"); // Recupera el ID del cliente
+
+      if (!token) {
+        alert("Por favor, inicie sesión para continuar.");
+        return;
+      }
+
+      if (!this.id_cliente) {
+        alert("El cliente no está definido.");
+        return;
+      }
+
+      try {
+        const response = await axios.post(
+          "http://localhost:3001/api/auth/venta",
+          {
+            id_cliente: this.id_cliente, // Incluye el ID del cliente
+            productos: this.carrito.map((p) => ({
+              id_producto: p.id_producto,
+              cantidad: p.cantidad,
+              precio_unitario: parseFloat(p.precio_unitario), // Asegúrate de enviar como número
+            })),
+            total: parseFloat(this.totalCarrito), // Asegúrate de enviar como número
+            metodo_pago_id: this.metodo_pago_id, // Incluye el método de pago
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`, // Enviar el token como cadena
+            },
+          }
+        );
+
+        if (response.data.message === "Venta registrada exitosamente") {
+          alert("Venta procesada con éxito.");
+          this.carrito = [];
+          this.totalCarrito = 0;
+        } else {
+          alert("Error al procesar la venta.");
+        }
+      } catch (error) {
+        console.error("Error al procesar la venta:", error);
+        alert("Error al procesar la venta.");
+      }
+    },
+    comprarAhora(producto) {
+      this.carrito = [{ ...producto, cantidad: 1 }];
+      this.actualizarTotal();
+      this.procesarVenta();
+    },
+  },
+  mounted() {
+    this.fetchProductos();
+  },
+};
+</script>
+
+<style scoped>
+.productos-tienda {
+  padding: 20px;
+}
+
+.productos-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.producto-card {
+  border: 1px solid #ccc;
+  padding: 20px;
+  width: 200px;
+  text-align: center;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.producto-descripcion h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.producto-acciones {
+  margin-top: 10px;
+}
+
+button {
+  margin: 5px 0;
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.carrito {
+  position: fixed;
+  right: 20px;
+  top: 20px;
+  width: 300px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.carrito ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.carrito li {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+</style>
