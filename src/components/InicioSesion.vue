@@ -151,7 +151,7 @@ export default {
   border-radius: 15px;
   width: 100%;
   max-width: 500px;
-  height: 420px;
+  height: 440px;
   box-shadow: 0 30px 15px rgba(0, 0, 0, 0.2);
   text-align: center;
 }
