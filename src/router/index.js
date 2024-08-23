@@ -12,6 +12,7 @@ import InicioAdmin from "@/components/InicioAdmin.vue";
 import MenuAdmin from "@/components/MenuAdmin.vue";
 import ListaClientes from "@/components/ListaClientes.vue";
 import ConfirmacionVerificacion from "@/components/ConfirmacionVerificacion.vue";
+import RecuperarContra from "@/components/RecuperarContra.vue";
 
 const routes = [
   {
@@ -24,7 +25,12 @@ const routes = [
     component: ProductosTienda,
   },
   {
-    path: "/verificacion-correo",
+    path: "/recuperarcontra",
+    name: "RecuperarContra",
+    component: RecuperarContra,
+  },
+  {
+    path: "/confirmacion-verificacion",
     name: "ConfirmacionVerificacion",
     component: ConfirmacionVerificacion,
     props: (route) => ({ token: route.query.token }),
