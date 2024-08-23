@@ -24,7 +24,7 @@ const routes = [
     component: ProductosTienda,
   },
   {
-    path: "/verificacion",
+    path: "/verificacion-correo",
     name: "ConfirmacionVerificacion",
     component: ConfirmacionVerificacion,
     props: (route) => ({ token: route.query.token }),
