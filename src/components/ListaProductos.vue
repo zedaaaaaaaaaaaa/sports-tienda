@@ -234,7 +234,7 @@ export default {
       try {
         const token = localStorage.getItem("token");
         await axios.delete(
-          `https://back-wwpy.onrender.com/productos/${producto.id_producto}`,
+          `https://back-wwpy.onrender.com/api/productos/${producto.id_producto}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
