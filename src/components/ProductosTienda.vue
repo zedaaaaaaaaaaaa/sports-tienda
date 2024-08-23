@@ -190,7 +190,7 @@ export default {
 
       try {
         const response = await axios.get(
-          `https://back-wwpy.onrender.com/auth/carrito`,
+          `https://back-wwpy.onrender.com/api/auth/carrito`,
           {
             params: {
               id_cliente: this.id_cliente,
