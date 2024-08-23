@@ -41,6 +41,13 @@
           >
         </p>
 
+        <p class="signup-text">
+          ¿Olvidaste tu contraseña?
+          <router-link to="/recuperarcontra" class="signup-link"
+            >Click aquí</router-link
+          >
+        </p>
+
         <b-button type="submit" class="login-button">Iniciar</b-button>
       </b-form>
     </div>
@@ -144,7 +151,7 @@ export default {
   border-radius: 15px;
   width: 100%;
   max-width: 500px;
-  height: 400px;
+  height: 420px;
   box-shadow: 0 30px 15px rgba(0, 0, 0, 0.2);
   text-align: center;
 }
