@@ -1,2 +1,0 @@
-seguir trabajando con cargaproductos.vue
-mejorar logica de miscompras.vue
